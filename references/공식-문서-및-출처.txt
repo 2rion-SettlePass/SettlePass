@@ -1,0 +1,573 @@
+1차 MVP 기준 포함 스택은 다음으로 확정하는 게 맞다.
+
+```text
+OmniOne CX
+→ 모바일 외국인등록증 / 모바일 신분증 인증 진입점
+
+OpenDID
+→ Housing Pass VC 발급·VP 제출·검증
+
+OmniOne Chain
+→ consentHash / verificationHash / reviewHash 기록
+
+AI 계약 리뷰 모듈
+→ 월세계약서 분석, 다국어 요약, 체류기간-계약기간 정합성 경고
+
+Web App Stack
+→ Next.js / React / TypeScript / Backend API / DB
+
+Smart Contract Stack
+→ Solidity / ethers.js
+```
+
+Sui, Walrus, PTB, zkLogin은 1차 MVP에 포함하지 않고 2차 고도화 스택으로 분리하는 게 맞다. Sui 바운티 문서도 Sui 기술 스택, zkLogin, PTB, Walrus 등은 별도 요건으로 제시하고 있으므로 1차 범위에 억지로 넣지 않는 편이 안정적이다. 
+
+---
+
+# 1. 1차 MVP 공식 근거 자료
+
+| 구분                 | 원본 링크                                                                                                                                                                                                                                                                                                                                                                            | 출처 성격                  | 1차 MVP에서 쓰는 이유                                                       |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
+| 2026 해커톤 가이드북      | [https://opendid.org/download/hackathon/2026/2026%20%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8%20%26%20AI%20%ED%95%B4%EC%BB%A4%ED%86%A4%20%EA%B0%80%EC%9D%B4%EB%93%9C%EB%B6%81.pdf?v=20260430](https://opendid.org/download/hackathon/2026/2026%20%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8%20%26%20AI%20%ED%95%B4%EC%BB%A4%ED%86%A4%20%EA%B0%80%EC%9D%B4%EB%93%9C%EB%B6%81.pdf?v=20260430) | 대회 공식 가이드              | 모바일 신분증 필수과제, OpenDID 선택과제, OmniOne Chain 선택과제, Track 2 MVP 기준 확인    |
+| 팀 최종 PPT           | 업로드 파일: `TrackNo_이리온_SettlePass_260531.pdf`                                                                                                                                                                                                                                                                                                                                      | 팀 최종 제출안               | 1차 MVP가 주거계약 플로우, OmniOne CX, OpenDID, OmniOne Chain, AI 분석 중심임을 확인  |
+| OmniOne CX API 매뉴얼 | [https://opendid.org/hackathon/2025/2025_%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8_AI_%ED%95%B4%EC%BB%A4%ED%86%A4_OmniOne_CX-VC-Verifier_v1.0_API_%EB%A7%A4%EB%89%B4%EC%96%BC.pdf](https://opendid.org/hackathon/2025/2025_%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8_AI_%ED%95%B4%EC%BB%A4%ED%86%A4_OmniOne_CX-VC-Verifier_v1.0_API_%EB%A7%A4%EB%89%B4%EC%96%BC.pdf)                       | 라온시큐어 / 해커톤 배포 API 매뉴얼 | CX 연동 API, Token 생성, QR/App 인증 요청, 검증 결과, Token 파싱, 외국인증 제공 데이터 확인   |
+
+가이드북은 모바일 신분증 활용을 필수과제로 두고, OpenDID와 OmniOne Chain 활용을 각각 5% 가산점 과제로 둔다. 또한 OmniOne Chain은 Solidity 파일 또는 ABI+Bytecode 업로드, API Key 생성, 트랜잭션 기록, `eth_call`, `eth_sendRawTransaction` 예시를 제공한다. ([한국디지털인증협회 | OpenDID][1])
+
+---
+
+# 2. OmniOne CX 공식 문서 / 매뉴얼
+
+## 2.1 필수 원본 링크
+
+| 자료                   | 원본 링크                                                                                                                                                                                                                                                                                                                                                      | 확인할 내용                                                                                                                             |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| OmniOne CX API 매뉴얼   | [https://opendid.org/hackathon/2025/2025_%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8_AI_%ED%95%B4%EC%BB%A4%ED%86%A4_OmniOne_CX-VC-Verifier_v1.0_API_%EB%A7%A4%EB%89%B4%EC%96%BC.pdf](https://opendid.org/hackathon/2025/2025_%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8_AI_%ED%95%B4%EC%BB%A4%ED%86%A4_OmniOne_CX-VC-Verifier_v1.0_API_%EB%A7%A4%EB%89%B4%EC%96%BC.pdf) | `/provider/list`, `/trans`, `/authen/qr/request`, `/authen/app/request`, `/authen/qr/result`, `/authen/app/result`, `/trans/token` |
+| OmniOne CX 제품 페이지    | [https://www.omnione.net/layout/kor/home.php?go=service.cx](https://www.omnione.net/layout/kor/home.php?go=service.cx)                                                                                                                                                                                                                                     | OmniOne CX가 사설인증서, 모바일 신분증, 디지털 증명서를 하나의 인증창에서 제공하는 통합인증 플랫폼이라는 제품 설명                                                              |
+| 라온시큐어 OmniOne 제품 페이지 | [https://www.raon.com/ko/service/omnione](https://www.raon.com/ko/service/omnione)                                                                                                                                                                                                                                                                         | OmniOne Digital ID, OmniOne Enterprise, OmniOne CX 등 라온 공식 제품군 확인                                                                  |
+| 모바일 신분증 공식 서비스       | [https://www.mobileid.go.kr/](https://www.mobileid.go.kr/)                                                                                                                                                                                                                                                                                                 | 국가 모바일 신분증 서비스 개요                                                                                                                  |
+| 모바일 신분증 개발지원센터       | [https://dev.mobileid.go.kr/mip/dfs/apiuse/apiusestep.do](https://dev.mobileid.go.kr/mip/dfs/apiuse/apiusestep.do)                                                                                                                                                                                                                                         | 연계서비스 신청, DID 등록, 테스트 신분증 발급, SP 서버 개발 절차                                                                                          |
+| 모바일 신분증 개발규격 및 다운로드  | [https://dev.mobileid.go.kr/mip/dfs/useguide/apiusemethod.do](https://dev.mobileid.go.kr/mip/dfs/useguide/apiusemethod.do)                                                                                                                                                                                                                                 | 연계 방식, 라이브러리 방식, 데몬 방식, 검증 구조                                                                                                      |
+| 테스트베드 App 설치 가이드     | [https://dev.mobileid.go.kr/mip/dfs/useguide/mdGuide.do?guide=testappinstallguide](https://dev.mobileid.go.kr/mip/dfs/useguide/mdGuide.do?guide=testappinstallguide)                                                                                                                                                                                       | 테스트 신분증 신청, 테스트 앱 설치, 외국인등록증 테스트 가능 여부                                                                                             |
+
+## 2.2 문서에서 확인된 핵심 내용
+
+OmniOne CX API 매뉴얼은 OmniOne CX가 VC-Verifier와 통합 인증 솔루션으로 구성되어 있고, 모바일 신분증을 제출하는 API를 설명한다고 한다. 또한 연동 흐름은 **토큰 생성 → 인증 요청 → 상태 확인 → 결과 요청 → 토큰 파싱** 순서다. 
+
+1차 MVP에서 봐야 할 API는 다음이다.
+
+| 기능                      | API                                      |
+| ----------------------- | ---------------------------------------- |
+| 인증사 목록 조회               | `GET /oacx/api/v1.0/provider/list`       |
+| 최초 Token 생성             | `POST /oacx/api/v1.0/trans`              |
+| QR 인증 요청                | `POST /oacx/api/v1.0/authen/qr/request`  |
+| AppToApp/WebToApp 인증 요청 | `POST /oacx/api/v1.0/authen/app/request` |
+| QR 검증 요청                | `POST /oacx/api/v1.0/authen/qr/result`   |
+| AppToApp/WebToApp 검증 요청 | `POST /oacx/api/v1.0/authen/app/result`  |
+| 결과 Token 파싱             | `POST /oacx/api/v1.0/trans/token`        |
+
+외국인증 제공 데이터는 매뉴얼 부록에 별도 표로 있고, 핵심 key는 다음이다. 
+
+| key             | 의미             | SettlePass claim 변환                      |
+| --------------- | -------------- | ---------------------------------------- |
+| `title`         | 외국인등록증         |                                          |
+| `engtitle`      | RESIDENCE CARD |                                          |
+| `qualifstaycd`  | 체류자격코드         | 1차에서는 원문 저장 금지                           |
+| `qualifstaynm`  | 체류자격명          | 1차에서는 원문 저장 금지                           |
+| `staydate`      | 체류허가일자         | 필요 시 내부 계산용                              |
+| `stayexdate`    | 체류만료일자         | `residenceValid`, `residenceExpiryMonth` |
+| `stayregloc`    | 체류확인 지역        | `regionLevel1`                           |
+| `stayregdate`   | 주소지 신고일        | 1차에서는 비공개                                |
+| `provider`      | 기관 id          | `coresidence`                            |
+| `resultCode`    | 결과 코드          | 인증 성공 여부                                 |
+| `clientMessage` | 결과 메시지         | 인증 결과 표시                                 |
+| `signType`      | 인증종류           | `ENT_MID`                                |
+
+## 2.3 1차 MVP 적용 방식
+
+1차에서는 실제 외국인등록증 실연동을 보장하지 않는다. 구조는 반드시 **OmniOne CX Adapter**로 만들고, 실행 모드는 두 개로 나눈다.
+
+| 모드             | 설명                                              |
+| -------------- | ----------------------------------------------- |
+| `CX_REAL_MODE` | OmniOne CX 실제 API 연동. 테스트 credential 제공 시 사용    |
+| `CX_MOCK_MODE` | OmniOne CX 응답 구조를 모사한 mock claim 생성. 예선 시연 안전장치 |
+
+1차 MVP claim 변환:
+
+```json
+{
+  "identityVerified": true,
+  "credentialType": "MOBILE_FOREIGNER_ID",
+  "ageOver19": true,
+  "residenceValid": true,
+  "residenceExpiryMonth": "2026-12",
+  "regionLevel1": "Seoul"
+}
+```
+
+---
+
+# 3. 모바일 외국인등록증 / 국가 모바일 신분증 공식 출처
+
+| 자료                        | 원본 링크                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 확인할 내용                                 |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 법무부 모바일 외국인등록증 보도자료       | [https://www.moj.go.kr/moj/221/subview.do?enc=Zm5jdDF8QEB8JTJGYmJzJTJGbW9qJTJGMTgyJTJGNTkwOTk3JTJGYXJ0Y2xWaWV3LmRvJTNGcGFzc3dvcmQlM0QlMjZyZ3NCZ25kZVN0ciUzRCUyNmJic0NsU2VxJTNEJTI2cmdzRW5kZGVTdHIlM0QlMjZpc1ZpZXdNaW5lJTNEZmFsc2UlMjZwYWdlJTNEMSUyNmJic09wZW5XcmR](https://www.moj.go.kr/moj/221/subview.do?enc=Zm5jdDF8QEB8JTJGYmJzJTJGbW9qJTJGMTgyJTJGNTkwOTk3JTJGYXJ0Y2xWaWV3LmRvJTNGcGFzc3dvcmQlM0QlMjZyZ3NCZ25kZVN0ciUzRCUyNmJic0NsU2VxJTNEJTI2cmdzRW5kZGVTdHIlM0QlMjZpc1ZpZXdNaW5lJTNEZmFsc2UlMjZwYWdlJTNEMSUyNmJic09wZW5XcmR)                                                                                                                                                     | 2025.1.10부터 등록외국인 대상 모바일 외국인등록증 발급     |
+| 출입국·외국인정책본부 모바일 외국인등록증 안내 | [https://www.immigration.go.kr/immigration/1564/subview.do?enc=Zm5jdDF8QEB8JTJGYmJzJTJGaW1taWdyYXRpb24lMkYyMjAlMkY1OTEwMjAlMkZhcnRjbFZpZXcuZG8lM0ZwYXNzd29yZCUzRCUyNnJnc0JnbmRlU3RyJTNEJTI2YmJzQ2xTZXElM0QlMjZyZ3NFbmRkZVN0ciUzRCUyNmlzVmlld01pbmUlM0RmYWxzZSUyNnBhZ2UlM0QxJTI2YmJzT3BlbldyZFNlcSUzRCUyNnNyY2hDb2x1bW4lM0QlMjZzcmNoV3JkJTNE](https://www.immigration.go.kr/immigration/1564/subview.do?enc=Zm5jdDF8QEB8JTJGYmJzJTJGaW1taWdyYXRpb24lMkYyMjAlMkY1OTEwMjAlMkZhcnRjbFZpZXcuZG8lM0ZwYXNzd29yZCUzRCUyNnJnc0JnbmRlU3RyJTNEJTI2YmJzQ2xTZXElM0QlMjZyZ3NFbmRkZVN0ciUzRCUyNmlzVmlld01pbmUlM0RmYWxzZSUyNnBhZ2UlM0QxJTI2YmJzT3BlbldyZFNlcSUzRCUyNnNyY2hDb2x1bW4lM0QlMjZzcmNoV3JkJTNE) | 모바일 외국인등록증 안내 페이지                      |
+| 행정안전부·금융위·법무부 공동 보도자료     | [https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=116430](https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=116430)                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 2025.3.21부터 6개 은행에서 모바일 외국인등록증 계좌개설 가능 |
+| 금융위원회 보도자료                | [https://www.fsc.go.kr/no010101/84208?curPage=8&srchBeginDt=&srchCtgry=&srchEndDt=&srchKey=cn&srchText=](https://www.fsc.go.kr/no010101/84208?curPage=8&srchBeginDt=&srchCtgry=&srchEndDt=&srchKey=cn&srchText=)                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 모바일 외국인등록증 금융업무 적용                     |
+| 법무부 체류외국인 통계              | [https://www.moj.go.kr/moj/2412/subview.do](https://www.moj.go.kr/moj/2412/subview.do)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | 2025년 말 체류외국인 2,783,247명 등 시장 근거       |
+
+법무부는 2025년 1월 10일부터 국내 체류 등록외국인을 대상으로 모바일 외국인등록증, 영주증, 거소신고증을 발급한다고 발표했다. ([법무부][2]) 행정안전부·금융위원회·법무부는 2025년 3월 21일부터 등록외국인이 모바일 외국인등록증으로 은행 계좌개설 등 금융업무를 처리할 수 있다고 밝혔다. ([행정안전부][3]) 법무부 통계 페이지는 2025년 말 기준 국내 체류외국인이 2,783,247명이라고 제시한다. ([법무부][4])
+
+1차 MVP에서 이 자료들은 기술 구현 자료라기보다 **문제정의·시장성·신원 인프라 존재 근거**로 사용한다.
+
+---
+
+# 4. OpenDID 공식 문서 / 원본 링크
+
+## 4.1 필수 원본 링크
+
+| 자료                            | 원본 링크                                                                                                                                                | 확인할 내용                                                                         |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| OmniOneID GitHub Organization | [https://github.com/OmniOneID](https://github.com/OmniOneID)                                                                                         | OpenDID 공식 GitHub 루트                                                           |
+| OpenDID Architecture 문서       | [https://github.com/OmniOneID/did-doc-architecture](https://github.com/OmniOneID/did-doc-architecture)                                               | OpenDID 구조, Trust Environment, Wallet, Digital ID, Security, DID repository 목록 |
+| OpenDID Release               | [https://github.com/OmniOneID/did-release](https://github.com/OmniOneID/did-release)                                                                 | QA 검증 릴리즈, 설치 가이드, 릴리즈 노트                                                      |
+| Demo Server                   | [https://github.com/OmniOneID/did-demo-server](https://github.com/OmniOneID/did-demo-server)                                                         | VC 발급, VP 제출, ZKP Proof 데모 서버                                                  |
+| Demo App                      | [https://github.com/OmniOneID/did-demo-app](https://github.com/OmniOneID/did-demo-app)                                                               | 앱 설치 없이 OpenDID 흐름 체험. 단, 실제 credential 거래는 수행하지 않음                            |
+| Issuer Server                 | [https://github.com/OmniOneID/did-issuer-server](https://github.com/OmniOneID/did-issuer-server)                                                     | VC 발급 서버                                                                       |
+| Verifier Server               | [https://github.com/OmniOneID/did-verifier-server](https://github.com/OmniOneID/did-verifier-server)                                                 | VP 검증 서버                                                                       |
+| TA Server                     | [https://github.com/OmniOneID/did-ta-server](https://github.com/OmniOneID/did-ta-server)                                                             | Trust Agent                                                                    |
+| Orchestrator Server           | [https://github.com/OmniOneID/did-orchestrator-server](https://github.com/OmniOneID/did-orchestrator-server)                                         | OpenDID 서버 설치·모니터링                                                             |
+| OpenDID 강의 / 실습 튜토리얼          | [https://www.youtube.com/playlist?list=PL3HF_2LPe2-6zf5Xf-31mvz1fxlY0fa4R](https://www.youtube.com/playlist?list=PL3HF_2LPe2-6zf5Xf-31mvz1fxlY0fa4R) | DID 기본개념, VC 발급, VP 제출, ZKP credential 제출 실습                                   |
+
+OmniOneID GitHub는 OpenDID 프로젝트가 표준화되고 상호운용 가능한 프레임워크를 통해 디지털 신원 검증의 진본성과 신뢰성을 높이는 것을 목표로 한다고 설명한다. ([GitHub][5]) OpenDID Architecture 문서는 OpenDID 시스템이 Trust Environment, Wallet, Digital ID, Security로 구성되고, 참여자 간 trust chain을 형성한다고 설명한다. ([GitHub][6])
+
+## 4.2 1차 MVP에서 읽어야 할 우선순위
+
+| 우선순위 | 문서                        | 이유                                          |
+| ---: | ------------------------- | ------------------------------------------- |
+|    1 | `did-doc-architecture`    | 전체 개념, 컴포넌트, VC/VP 흐름 이해                    |
+|    2 | `did-demo-server`         | 1차 MVP에서 VC 발급·VP 제출 흐름을 얇게 구현할 때 가장 직접적    |
+|    3 | `did-demo-app`            | 사용자 플로우와 UX 참고. 실제 credential 거래가 아니라는 점 주의 |
+|    4 | `did-issuer-server`       | Housing Pass VC 발급 서버 구조 참고                 |
+|    5 | `did-verifier-server`     | 임대인 검증 포털의 VP 검증 구조 참고                      |
+|    6 | `did-release`             | 설치 가이드와 안정 릴리즈 확인                           |
+|    7 | `did-orchestrator-server` | 결선에서 OpenDID 서버 묶음 운영 시 참고                  |
+
+Demo Server README는 Java 21 이상, Gradle 7.0 이상, JDK 21 이상, 2GB RAM/10GB 디스크 요구사항과 User Registration, VC Issuance, VP Submission & ZKP Proof 데모 시나리오를 제공한다고 설명한다. ([GitHub][7]) Demo App README는 UI와 interaction flow는 실제 앱과 유사하지만 실제 데이터는 사용하지 않고, VC 발급·VP 제출 QR도 시뮬레이션이라고 명시한다. ([GitHub][8])
+
+## 4.3 W3C 표준 원문
+
+| 자료                                     | 원본 링크                                                                                | SettlePass 적용                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------- |
+| DID Core v1.0                          | [https://www.w3.org/TR/did-core/](https://www.w3.org/TR/did-core/)                   | DID syntax, DID document, DID resolution 개념 |
+| DID v1.1                               | [https://www.w3.org/TR/did-1.1/](https://www.w3.org/TR/did-1.1/)                     | 최신 DID 문서 확인용                               |
+| Verifiable Credentials Data Model v2.0 | [https://www.w3.org/TR/vc-data-model-2.0/](https://www.w3.org/TR/vc-data-model-2.0/) | Housing Pass VC, VP 모델링 기준                  |
+| VC JSON Schema                         | [https://www.w3.org/TR/vc-json-schema/](https://www.w3.org/TR/vc-json-schema/)       | Housing Pass credential schema 설계           |
+| VC Overview                            | [https://w3c.github.io/vc-overview/](https://w3c.github.io/vc-overview/)             | VC 사양군 전체 로드맵                               |
+
+W3C DID Core는 DID syntax, common data model, DID document, DID operations, DID resolution 개념을 정의한다. ([W3C][9]) W3C VC Data Model v2.0은 issuer, holder, verifier로 구성된 3자 생태계에서 claim을 검증 가능한 credential로 표현하는 데이터 모델을 정의한다. ([W3C][10])
+
+## 4.4 1차 MVP 적용 방식
+
+1차에서 OpenDID는 전체 운영환경을 완전 구축하는 것이 아니라 다음 범위로 제한한다.
+
+```text
+CX Adapter claim
+→ HousingPassCredential VC 발급
+→ 임대인 요청
+→ 사용자 동의
+→ HousingPass VP 제출
+→ 검증 결과 표시
+```
+
+Housing Pass VC 예시:
+
+```json
+{
+  "type": ["VerifiableCredential", "HousingPassCredential"],
+  "issuer": "did:settlepass:issuer:housing",
+  "credentialSubject": {
+    "id": "did:settlepass:user:mock-001",
+    "identityVerified": true,
+    "ageOver19": true,
+    "residenceValid": true,
+    "regionLevel1": "Seoul"
+  },
+  "expirationDate": "2026-12-31T23:59:59Z"
+}
+```
+
+---
+
+# 5. OmniOne Chain 공식 문서 / 원본 링크
+
+## 5.1 확인된 공식 출처
+
+| 자료                        | 원본 링크                                                                                                                                                                                                                                                                                                                                                                            | 확인할 내용                                                                                    |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 2026 해커톤 가이드북             | [https://opendid.org/download/hackathon/2026/2026%20%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8%20%26%20AI%20%ED%95%B4%EC%BB%A4%ED%86%A4%20%EA%B0%80%EC%9D%B4%EB%93%9C%EB%B6%81.pdf?v=20260430](https://opendid.org/download/hackathon/2026/2026%20%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8%20%26%20AI%20%ED%95%B4%EC%BB%A4%ED%86%A4%20%EA%B0%80%EC%9D%B4%EB%93%9C%EB%B6%81.pdf?v=20260430) | OmniOne Chain 지원 기능, dApp 개발 프로세스, 스마트컨트랙트 등록·배포, `eth_call`, `eth_sendRawTransaction` 예시 |
+| 2025 해커톤 가이드북             | [https://opendid.org/hackathon/2025/2025_%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8_AI_%ED%95%B4%EC%BB%A4%ED%86%A4_%EA%B0%80%EC%9D%B4%EB%93%9C%EB%B6%81_alpha.pdf?v=20250529](https://opendid.org/hackathon/2025/2025_%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8_AI_%ED%95%B4%EC%BB%A4%ED%86%A4_%EA%B0%80%EC%9D%B4%EB%93%9C%EB%B6%81_alpha.pdf?v=20250529)                                   | 2025년 기준 OmniOne Chain 기술 소개                                                              |
+| OmniOne 제품 사이트            | [https://www.omnione.net/](https://www.omnione.net/)                                                                                                                                                                                                                                                                                                                             | OmniOne 제품군 배경 확인                                                                         |
+| 과거 OmniOne Developer Site | [https://dev-en.omnione.net/](https://dev-en.omnione.net/)                                                                                                                                                                                                                                                                                                                       | 과거 OmniOne 플랫폼 배경. 1차 MVP의 최신 Chain API 근거로 쓰기에는 제한적                                      |
+
+현재 공개 검색 기준으로는 **OmniOne Chain만을 위한 별도 최신 공개 개발자 문서, RPC 엔드포인트 문서, Chain ID 문서, Explorer 문서**는 명확히 확인되지 않았다. 공식적으로 확인 가능한 최신 개발 근거는 2026 해커톤 가이드북의 OmniOne Chain 장이다. 해당 가이드북은 Web3 서비스, 스마트컨트랙트 배포, 환경 계정, EOA, API Key, Solidity 또는 ABI+Bytecode 업로드, 트랜잭션 개발 절차를 설명한다. ([한국디지털인증협회 | OpenDID][1])
+
+## 5.2 1차 MVP에서 구현할 Chain 범위
+
+| 항목        | 1차 구현                                             |
+| --------- | ------------------------------------------------- |
+| 컨트랙트      | `SettlePassAuditLog.sol`                          |
+| 기록 대상     | `consentHash`, `verificationHash`, `reviewHash`   |
+| 원문 저장     | 금지                                                |
+| txHash 표시 | 필수                                                |
+| 컨트랙트 방식   | Solidity file 또는 ABI+Bytecode 업로드                 |
+| 호출 방식     | OmniOne Chain API 또는 EVM-compatible 호출 방식 확인 후 적용 |
+| fallback  | 로컬 mock txHash 또는 test chain txHash               |
+
+1차 MVP 컨트랙트는 event 중심으로 충분하다.
+
+```solidity
+event SettlePassAuditLogged(
+    bytes32 indexed recordId,
+    bytes32 indexed userHash,
+    bytes32 indexed verifierHash,
+    bytes32 purposeHash,
+    bytes32 payloadHash,
+    string logType,
+    uint256 timestamp
+);
+```
+
+## 5.3 운영진에게 반드시 확인할 것
+
+| 확인 항목                     | 이유                       |
+| ------------------------- | ------------------------ |
+| OmniOne Chain 콘솔 URL      | 스마트컨트랙트 등록·배포 필요         |
+| Chain ID                  | EVM 호출 시 필요              |
+| RPC Endpoint              | ethers.js 직접 연동 가능 여부 확인 |
+| API Key 발급 방식             | 가이드북상 API Key가 필요        |
+| 테스트 계정 / 테스트 토큰           | 트랜잭션 실행 필요               |
+| Explorer 제공 여부            | 시연에서 txHash 확인 필요        |
+| Solidity 지원 버전            | 컴파일러 버전 고정 필요            |
+| 이벤트 로그 조회 방식              | 검증이력 화면 구현 필요            |
+| 컨트랙트 배포가 콘솔 전용인지 API 가능인지 | CI/CD 자동화 여부 결정          |
+
+---
+
+# 6. Solidity / ethers.js 공식 문서
+
+OmniOne Chain이 Solidity, ABI+Bytecode, `eth_call`, `eth_sendRawTransaction` 형태를 제시하므로 1차 MVP 스마트컨트랙트 구현에는 Solidity와 ethers.js 문서를 같이 봐야 한다.
+
+| 자료                                   | 원본 링크                                                                                                                                        | 확인할 내용                                    |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Solidity 공식 문서                       | [https://docs.soliditylang.org/](https://docs.soliditylang.org/)                                                                             | Solidity 문법, 컴파일러, contract 구조            |
+| Solidity Contracts                   | [https://docs.soliditylang.org/en/latest/contracts.html](https://docs.soliditylang.org/en/latest/contracts.html)                             | contract, state variable, function, event |
+| Solidity Source File Layout          | [https://docs.soliditylang.org/en/latest/layout-of-source-files.html](https://docs.soliditylang.org/en/latest/layout-of-source-files.html)   | SPDX, pragma, ABI coder                   |
+| Solidity Events / Contract Structure | [https://docs.soliditylang.org/en/latest/structure-of-a-contract.html](https://docs.soliditylang.org/en/latest/structure-of-a-contract.html) | event 선언, struct, enum, error             |
+| ethers.js v6 공식 문서                   | [https://docs.ethers.org/v6/](https://docs.ethers.org/v6/)                                                                                   | 컨트랙트 호출, signer, provider, event 조회       |
+| ethers.js Getting Started            | [https://docs.ethers.org/v6/getting-started/](https://docs.ethers.org/v6/getting-started/)                                                   | NPM 설치, 기본 사용                             |
+| OpenZeppelin Contracts v5            | [https://docs.openzeppelin.com/contracts/5.x](https://docs.openzeppelin.com/contracts/5.x)                                                   | 보안 검증된 컨트랙트 라이브러리. 1차 MVP에서는 직접 필요성 낮음    |
+
+Solidity 공식 문서는 최신 릴리즈 버전 사용을 권고하고, Solidity 0.8.x 계열의 breaking changes를 주의하라고 한다. ([Solidity Documentation][11]) Solidity의 contract는 상태 변수와 함수를 포함하며, 다른 contract의 function 호출은 EVM call로 수행된다. ([Solidity Documentation][12]) ethers.js는 Ethereum 생태계와 상호작용하기 위한 compact library이며 dApp, wallet, 간단한 script에서 읽기·쓰기 호출에 쓰인다. ([docs.ethers.org][13])
+
+---
+
+# 7. AI 계약 리뷰 모듈 공식 문서
+
+1차 MVP의 AI는 “부동산 공증”이 아니라 **외국인이 계약서 내용을 이해하고 최종 확인하는 보조 기능**이다. 따라서 블록체인에 남기는 값도 `documentHash`가 아니라 `reviewHash`다.
+
+## 7.1 OpenAI API 사용 시 공식 원본 링크
+
+| 자료                     | 원본 링크                                                                                                                                | 확인할 내용                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| OpenAI API Docs        | [https://developers.openai.com/api/docs](https://developers.openai.com/api/docs)                                                     | 전체 API 문서                                               |
+| API Reference Overview | [https://developers.openai.com/api/reference/overview/](https://developers.openai.com/api/reference/overview/)                       | REST API, streaming, realtime API                       |
+| Responses API Overview | [https://developers.openai.com/api/reference/responses/overview/](https://developers.openai.com/api/reference/responses/overview/)   | 텍스트·이미지 입력, stateful interaction, tool/function calling |
+| Models                 | [https://developers.openai.com/api/docs/models](https://developers.openai.com/api/docs/models)                                       | 사용 가능한 모델, 텍스트/이미지 입력, 다국어                              |
+| Structured Outputs     | [https://developers.openai.com/api/docs/guides/structured-outputs](https://developers.openai.com/api/docs/guides/structured-outputs) | 계약 분석 결과를 JSON Schema로 고정                               |
+| File Inputs            | [https://developers.openai.com/api/docs/guides/file-inputs](https://developers.openai.com/api/docs/guides/file-inputs)               | PDF 또는 파일 입력 처리                                         |
+| Images and Vision      | [https://developers.openai.com/api/docs/guides/images-vision](https://developers.openai.com/api/docs/guides/images-vision)           | 계약서 이미지/PDF 스캔본 처리                                      |
+
+OpenAI API Reference는 RESTful, streaming, realtime API를 HTTP 환경에서 사용할 수 있다고 설명한다. ([OpenAI 개발자][14]) Responses API는 텍스트와 이미지 입력을 지원하고, function calling과 built-in tools 확장이 가능하다고 설명한다. ([OpenAI 개발자][15]) Structured Outputs는 모델 응답이 개발자가 정의한 JSON Schema를 따르도록 보장하는 기능이다. ([OpenAI 개발자][16]) File Inputs 문서는 Responses API에서 파일을 `input_file`로 전달할 수 있다고 설명한다. ([OpenAI 개발자][17])
+
+## 7.2 1차 MVP AI 출력 스키마
+
+```json
+{
+  "reviewType": "HOUSING_CONTRACT_REVIEW",
+  "summary": {
+    "deposit": "5000000",
+    "monthlyRent": "600000",
+    "contractPeriod": "2026-08-01 ~ 2027-07-31",
+    "maintenanceFee": "100000"
+  },
+  "riskItems": [
+    {
+      "level": "MEDIUM",
+      "category": "EARLY_TERMINATION",
+      "reason": "중도해지 시 보증금 반환 조건이 불명확합니다.",
+      "evidenceText": "계약서 원문 근거 문장"
+    }
+  ],
+  "residencePeriodCheck": {
+    "status": "WARNING",
+    "reason": "체류만료일이 계약 종료일보다 빠릅니다."
+  },
+  "userConfirmed": true,
+  "confirmedAt": "2026-06-15T10:00:00+09:00"
+}
+```
+
+## 7.3 reviewHash 정의
+
+```text
+reviewHash = hash({
+  reviewId,
+  userDidHash,
+  verifierDidHash,
+  housingPassId,
+  aiReviewResultHash,
+  userConfirmed: true,
+  confirmedAt,
+  nonce
+})
+```
+
+`reviewHash`는 계약서 원문 공증이 아니다. 의미는 **사용자가 AI 계약 리뷰 결과를 확인했고, 그 확인 이력이 사후 위변조되지 않았음을 증명하는 감사 로그**다.
+
+---
+
+# 8. Web App / Backend / DB 공식 문서
+
+1차 MVP는 웹앱이다. 결선 진출 전까지는 모바일앱으로 확장하지 않고, 웹앱에서 전체 플로우가 보이는 것이 목표다.
+
+## 8.1 Frontend
+
+| 스택                                 | 원본 링크                                                                                                                    | 확인할 내용                                               |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| Next.js Docs                       | [https://nextjs.org/docs](https://nextjs.org/docs)                                                                       | App Router, Route Handlers, Server/Client Components |
+| Next.js App Router Getting Started | [https://nextjs.org/docs/app/getting-started](https://nextjs.org/docs/app/getting-started)                               | 프로젝트 생성, TypeScript, ESLint                          |
+| React Docs                         | [https://react.dev/learn](https://react.dev/learn)                                                                       | 컴포넌트, state, event, list, conditional rendering      |
+| React Reference                    | [https://react.dev/reference/react](https://react.dev/reference/react)                                                   | hook, component API                                  |
+| TypeScript Handbook                | [https://www.typescriptlang.org/docs/handbook/intro.html](https://www.typescriptlang.org/docs/handbook/intro.html)       | type, interface, narrowing, generic                  |
+| TypeScript 한국어 문서                  | [https://www.typescriptlang.org/ko/docs/handbook/intro.html](https://www.typescriptlang.org/ko/docs/handbook/intro.html) | 한국어 참고용                                              |
+
+Next.js는 create-next-app으로 TypeScript, ESLint, alias를 설정할 수 있고, App Router 문서는 layout, page, navigation, server/client components 등을 설명한다. ([Next.js][18]) React 공식 문서는 컴포넌트 작성, 조건부 렌더링, 이벤트 처리, state 공유 등 UI 구현 핵심을 다룬다. ([React][19]) TypeScript Handbook은 일반 개발자가 TypeScript를 이해하기 위한 종합 문서다. ([TypeScript][20])
+
+## 8.2 Backend
+
+| 스택               | 원본 링크                                                                      | 확인할 내용                                  |
+| ---------------- | -------------------------------------------------------------------------- | --------------------------------------- |
+| Node.js API Docs | [https://nodejs.org/docs/latest/api/](https://nodejs.org/docs/latest/api/) | 런타임 API                                 |
+| Node.js Learn    | [https://nodejs.org/learn](https://nodejs.org/learn)                       | HTTP, 파일, 비동기, 환경변수                     |
+| NestJS Docs      | [https://docs.nestjs.com/](https://docs.nestjs.com/)                       | Controller, Provider, Module, DI, Guard |
+| NestJS 공식 사이트    | [https://nestjs.com/](https://nestjs.com/)                                 | Node.js server-side framework 개요        |
+
+Node.js 공식 문서는 Node.js가 V8 기반 JavaScript runtime이라고 설명한다. ([Node.js][21]) NestJS는 확장 가능한 Node.js 서버 애플리케이션을 위한 TypeScript 기반 프레임워크이며 OOP, FP, FRP 요소를 결합한다고 설명한다. ([NestJS 문서][22])
+
+## 8.3 DB / ORM
+
+| 스택                        | 원본 링크                                                                                                      | 확인할 내용                               |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| PostgreSQL Docs           | [https://www.postgresql.org/docs/](https://www.postgresql.org/docs/)                                       | PostgreSQL 공식 매뉴얼                    |
+| PostgreSQL Current Manual | [https://www.postgresql.org/docs/current/index.html](https://www.postgresql.org/docs/current/index.html)   | 현재 버전 기준 SQL, data type, index       |
+| Prisma Docs               | [https://www.prisma.io/docs](https://www.prisma.io/docs)                                                   | Prisma ORM, migration, Prisma Client |
+| Prisma Next.js Guide      | [https://www.prisma.io/docs/guides/frameworks/nextjs](https://www.prisma.io/docs/guides/frameworks/nextjs) | Next.js와 Prisma 연동                   |
+
+PostgreSQL 공식 문서는 current manual과 버전별 PDF 매뉴얼을 제공한다. ([PostgreSQL][23]) Prisma 문서는 Prisma ORM과 Prisma Postgres를 이용한 개발 경로를 제공하고, Next.js 연동 가이드를 별도로 제공한다. ([Prisma][24])
+
+---
+
+# 9. 1차 MVP 기준 최종 공식 링크 묶음
+
+## 반드시 북마크할 링크
+
+```text
+대회 공식
+https://opendid.org/download/hackathon/2026/2026%20%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8%20%26%20AI%20%ED%95%B4%EC%BB%A4%ED%86%A4%20%EA%B0%80%EC%9D%B4%EB%93%9C%EB%B6%81.pdf?v=20260430
+
+OmniOne CX API Manual
+https://opendid.org/hackathon/2025/2025_%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8_AI_%ED%95%B4%EC%BB%A4%ED%86%A4_OmniOne_CX-VC-Verifier_v1.0_API_%EB%A7%A4%EB%89%B4%EC%96%BC.pdf
+
+모바일 신분증 개발지원센터
+https://dev.mobileid.go.kr/mip/dfs/apiuse/apiusestep.do
+
+모바일 신분증 개발규격
+https://dev.mobileid.go.kr/mip/dfs/useguide/apiusemethod.do
+
+테스트베드 App 설치 가이드
+https://dev.mobileid.go.kr/mip/dfs/useguide/mdGuide.do?guide=testappinstallguide
+
+OpenDID GitHub
+https://github.com/OmniOneID
+
+OpenDID Architecture
+https://github.com/OmniOneID/did-doc-architecture
+
+OpenDID Demo Server
+https://github.com/OmniOneID/did-demo-server
+
+OpenDID Demo App
+https://github.com/OmniOneID/did-demo-app
+
+OpenDID Release
+https://github.com/OmniOneID/did-release
+
+W3C DID Core
+https://www.w3.org/TR/did-core/
+
+W3C VC Data Model 2.0
+https://www.w3.org/TR/vc-data-model-2.0/
+
+Solidity Docs
+https://docs.soliditylang.org/
+
+ethers.js v6
+https://docs.ethers.org/v6/
+
+OpenAI API Docs
+https://developers.openai.com/api/docs
+
+OpenAI Structured Outputs
+https://developers.openai.com/api/docs/guides/structured-outputs
+
+Next.js Docs
+https://nextjs.org/docs
+
+NestJS Docs
+https://docs.nestjs.com/
+
+PostgreSQL Docs
+https://www.postgresql.org/docs/
+
+Prisma Docs
+https://www.prisma.io/docs
+```
+
+---
+
+# 10. 공식 출처 기준 구현 우선순위
+
+## 1순위: OmniOne CX Adapter
+
+근거: 1차 MVP의 첫 단계는 모바일 외국인등록증 인증이다. 최종 PPT에서도 “모바일 외국인등록증 인증 → OmniOne CX 본인확인 → 성인·체류 유효 claim 추출”로 설계되어 있다. 
+
+읽을 문서:
+
+1. OmniOne CX API 매뉴얼
+2. 모바일 신분증 개발지원센터
+3. 테스트베드 App 설치 가이드
+
+구현 범위:
+
+```text
+provider list
+token 생성
+QR/WebToApp request
+result
+token parsing
+CX_MOCK_MODE fallback
+```
+
+## 2순위: OpenDID Housing Pass
+
+근거: OpenDID는 1차 MVP에서 선택적 정보공개와 Housing Pass VC/VP의 핵심 레이어다.
+
+읽을 문서:
+
+1. did-doc-architecture
+2. did-demo-server
+3. did-demo-app
+4. W3C VC Data Model
+
+구현 범위:
+
+```text
+HousingPassCredential JSON
+HousingPassPresentation JSON
+임대인 Verifier Portal
+검증 결과 Yes/No
+```
+
+## 3순위: OmniOne Chain Audit Log
+
+근거: 1차 MVP에서 블록체인에 남길 것은 계약서 원문이 아니라 동의·검증·리뷰 확인 이력이다.
+
+읽을 문서:
+
+1. 2026 해커톤 가이드북 OmniOne Chain 장
+2. Solidity docs
+3. ethers.js docs
+
+구현 범위:
+
+```text
+consentHash
+verificationHash
+reviewHash
+txHash 표시
+원문 개인정보 저장 금지
+```
+
+## 4순위: AI 계약 리뷰
+
+근거: 외국인 정주 불편의 핵심은 계약서 이해와 절차 이해다. AI는 계약서의 핵심 조건, 위험 조항, 체류기간-계약기간 정합성을 요약한다.
+
+읽을 문서:
+
+1. OpenAI API Docs
+2. Responses API
+3. Structured Outputs
+4. File Inputs
+
+구현 범위:
+
+```text
+PDF/text input
+계약 핵심 조건 추출
+위험조항 탐지
+다국어 요약
+JSON Schema 고정
+사용자 최종확인
+reviewHash 생성
+```
+
+---
+
+# 11. 현재 기준 미확인 사항
+
+| 항목                             | 상태                                                          | 액션                                            |
+| ------------------------------ | ----------------------------------------------------------- | --------------------------------------------- |
+| OmniOne Chain 전용 최신 공개 개발자 포털  | 공개 검색 기준 명확한 별도 문서 확인 안 됨                                   | 운영진/멘토에게 콘솔 URL, Chain ID, RPC, API Key 문서 요청 |
+| OmniOne CX 해커톤 테스트 서버 URL      | 매뉴얼은 `{서버 URL}` placeholder 사용                              | 해커톤 기술지원 채널에서 테스트 URL 요청                      |
+| 외국인등록증 테스트 credential          | 테스트베드 가이드상 테스트 신청 구조는 있으나 승인 필요                             | 테스트베드 계정/credential 제공 여부 확인                  |
+| OpenDID custom VC schema 등록 방식 | Demo Server는 제공되나 SettlePass HousingPass schema 추가 방식 확인 필요 | Demo Server 설치 후 issuer/verifier 구조 확인        |
+| OmniOne Chain Explorer         | 공개 문서에서 확인 부족                                               | txHash 시연용 explorer/API 제공 여부 확인              |
+
+결론: 1차 MVP에서 공식문서 기반으로 바로 착수 가능한 부분은 **CX Adapter 구조 설계, OpenDID VC/VP 모델링, AI 계약 리뷰, Solidity audit log contract**다. 실제 외부 연동의 불확실성은 **OmniOne CX 서버 접근권한, 외국인증 테스트 credential, OmniOne Chain 콘솔/API 접근권한**에 있다.
+
+[1]: https://opendid.org/download/hackathon/2026/2026%20%EB%B8%94%EB%A1%9D%EC%B2%B4%EC%9D%B8%20%26%20AI%20%ED%95%B4%EC%BB%A4%ED%86%A4%20%EA%B0%80%EC%9D%B4%EB%93%9C%EB%B6%81.pdf?v=20260430 "PowerPoint 프레젠테이션"
+[2]: https://www.moj.go.kr/moj/221/subview.do?enc=Zm5jdDF8QEB8JTJGYmJzJTJGbW9qJTJGMTgyJTJGNTkwOTk3JTJGYXJ0Y2xWaWV3LmRvJTNGcGFzc3dvcmQlM0QlMjZyZ3NCZ25kZVN0ciUzRCUyNmJic0NsU2VxJTNEJTI2cmdzRW5kZGVTdHIlM0QlMjZpc1ZpZXdNaW5lJTNEZmFsc2UlMjZwYWdlJTNEMSUyNmJic09wZW5XcmR&utm_source=chatgpt.com "법무부, 모바일 외국인등록증 발급 - 보도자료"
+[3]: https://www.mois.go.kr/frt/bbs/type010/commonSelectBoardArticle.do?bbsId=BBSMSTR_000000000008&nttId=116430&utm_source=chatgpt.com "3월 21일부터 6개 은행에서 '모바일 외국인등록증'으로 계좌 ..."
+[4]: https://www.moj.go.kr/moj/2412/subview.do?utm_source=chatgpt.com "법령/자료>통계정보>출입국통계>체류외국인"
+[5]: https://github.com/OmniOneID "OMNIONE · GitHub"
+[6]: https://github.com/OmniOneID/did-doc-architecture "GitHub - OmniOneID/did-doc-architecture: Design documents about Open DID · GitHub"
+[7]: https://github.com/OmniOneID/did-demo-server "GitHub - OmniOneID/did-demo-server · GitHub"
+[8]: https://github.com/OmniOneID/did-demo-app "GitHub - OmniOneID/did-demo-app · GitHub"
+[9]: https://www.w3.org/TR/did-core/?utm_source=chatgpt.com "Decentralized Identifiers (DIDs) v1.0"
+[10]: https://www.w3.org/TR/vc-data-model-2.0/?utm_source=chatgpt.com "Verifiable Credentials Data Model v2.0"
+[11]: https://docs.soliditylang.org/?utm_source=chatgpt.com "Solidity — Solidity 0.8.35-develop documentation"
+[12]: https://docs.soliditylang.org/en/latest/contracts.html?utm_source=chatgpt.com "Contracts — Solidity 0.8.36-develop documentation"
+[13]: https://docs.ethers.org/v6/?utm_source=chatgpt.com "Ethers.js"
+[14]: https://developers.openai.com/api/reference/overview/?utm_source=chatgpt.com "API Overview | OpenAI API Reference"
+[15]: https://developers.openai.com/api/reference/responses/overview/?utm_source=chatgpt.com "Responses Overview | OpenAI API Reference"
+[16]: https://developers.openai.com/api/docs/guides/structured-outputs?utm_source=chatgpt.com "Structured model outputs | OpenAI API"
+[17]: https://developers.openai.com/api/docs/guides/file-inputs?utm_source=chatgpt.com "File inputs | OpenAI API"
+[18]: https://nextjs.org/docs/app/getting-started?utm_source=chatgpt.com "App Router: Getting Started"
+[19]: https://react.dev/learn?utm_source=chatgpt.com "Quick Start"
+[20]: https://www.typescriptlang.org/docs/handbook/intro.html?utm_source=chatgpt.com "The TypeScript Handbook"
+[21]: https://nodejs.org/api/documentation.html?utm_source=chatgpt.com "About this documentation | Node.js v26.2.0 Documentation"
+[22]: https://docs.nestjs.com/?utm_source=chatgpt.com "Documentation | NestJS - A progressive Node.js framework"
+[23]: https://www.postgresql.org/docs/?utm_source=chatgpt.com "PostgreSQL: Documentation"
+[24]: https://www.prisma.io/docs?utm_source=chatgpt.com "Get started with Prisma | Prisma Documentation"

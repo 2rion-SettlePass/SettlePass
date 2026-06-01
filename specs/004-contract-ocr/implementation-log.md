@@ -1,0 +1,1 @@
+# Contract OCR Implementation Log
