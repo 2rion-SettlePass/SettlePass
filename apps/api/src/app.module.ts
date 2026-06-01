@@ -1,5 +1,7 @@
 import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller";
+import { validateEnv } from "./config/env.validation";
 import { IdentityModule } from "./modules/identity/identity.module";
 import { UsersModule } from "./modules/users/users.module";
 import { HousingPassModule } from "./modules/housing-pass/housing-pass.module";
@@ -13,6 +15,12 @@ import { FilesModule } from "./modules/files/files.module";
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // cwd=apps/api. 우선 apps/api/.env(있으면), 없으면 모노레포 루트 .env.
+      envFilePath: [".env", "../../.env"],
+      validate: validateEnv,
+    }),
     IdentityModule,
     UsersModule,
     HousingPassModule,

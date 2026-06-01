@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> 새로 시작한다면 `docs/engineering/PROJECT_STATUS.md`를 가장 먼저 읽어라 — 현재 세팅 상태, 1분 부트스트랩, 실구현 시작법이 정리돼 있다.
+
 ## Project summary
 SettlePass 1차 MVP는 외국인 주거계약 과정에서 필요한 최소 신원·체류 claim을 선택적으로 공유하고, AI 계약 리뷰 확인 이력을 reviewHash로 남기는 웹앱 데모다.
 

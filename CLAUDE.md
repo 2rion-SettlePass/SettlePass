@@ -40,6 +40,7 @@ Do not implement these in Phase 1:
 
 ## Read first
 Before editing, read:
+- `docs/engineering/PROJECT_STATUS.md`  ← 현재 세팅 상태 + 부트스트랩 + 구현 시작법 (가장 먼저)
 - `AGENTS.md`
 - `README.md`
 - `docs/product/PRD.md`
