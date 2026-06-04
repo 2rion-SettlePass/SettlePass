@@ -56,7 +56,7 @@ export const DEMO_HOUSING_PASS: HousingPassCredential = {
 export const DEMO_VERIFICATION_REQUEST = {
   requestId: "vr_001",
   verifierId: DEMO_VERIFIER.verifierId,
-  targetUserId: DEMO_USER.userId,
+  targetUserDid: DEMO_USER.userDid,
   purpose: "HOUSING_CONTRACT",
   requestedClaims: ["identityVerified", "ageOver19", "residenceValid", "regionLevel1"],
   status: "CREATED",

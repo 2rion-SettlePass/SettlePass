@@ -2,8 +2,8 @@
   "name": "@settlepass/api",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
-    "start:dev": "nest start --watch",
+    "dev": "tsx watch src/main.ts",
+    "start:dev": "tsx watch src/main.ts",
     "build": "nest build",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc --noEmit",

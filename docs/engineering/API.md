@@ -8,6 +8,7 @@ Base prefix: `/api`
 - Sensitive raw identity data must not be returned.
 - `mockTxHash` is a Phase 1 placeholder and not a real chain transaction.
 - API errors must not reveal alien registration number, nationality, full address, passport number, or raw visa status.
+- **User identification:** every request that references a user does so by **DID** (`userDid` / `targetUserDid`). The internal uuid `userId` is never accepted as an API input; the application layer resolves DID → internal user (see `docs/engineering/IMPLEMENTATION_PLAN.md` §1-①). `POST /identity/auth/complete` is the one place that returns both `userId` and `userDid` (it establishes the mapping).
 
 ## 1. Identity
 
@@ -71,6 +72,10 @@ Response:
 }
 ```
 
+### GET `/users/me?userDid=...`
+
+Return the current user's normalized claims (dashboard hub). User scoped by `userDid`.
+
 ## 2. Housing Pass
 
 ### POST `/housing-passes`
@@ -81,7 +86,7 @@ Request:
 
 ```json
 {
-  "userId": "user_001"
+  "userDid": "did:settlepass:user:mock-001"
 }
 ```
 
@@ -107,18 +112,22 @@ Response:
 }
 ```
 
+### GET `/housing-passes/:id`
+
+Return a previously created Housing Pass (same shape as the create response).
+
 ## 3. Verification Request
 
 ### POST `/verification-requests`
 
-Create landlord verification request.
+Create landlord verification request. `targetUserDid` identifies the user whose Housing Pass is requested.
 
 Request:
 
 ```json
 {
   "verifierId": "verifier_landlord_001",
-  "targetUserId": "user_001",
+  "targetUserDid": "did:settlepass:user:mock-001",
   "purpose": "HOUSING_CONTRACT",
   "requestedClaims": [
     "identityVerified",
@@ -135,15 +144,44 @@ Response:
 {
   "requestId": "vr_001",
   "status": "CREATED",
-  "consentUrl": "/verification/requests/vr_001"
+  "consentUrl": "/consent/vr_001"
+}
+```
+
+### GET `/verification-requests/:requestId`
+
+Return request detail for the consent screen (`VerificationRequestDetailResponse`). `verifierName` comes from the Verifier row; `hiddenClaims` is the full list of private claim keys that can never be requested or shared. `verifiedClaims` is **not** included here (results are exposed only by the `/result` endpoint).
+
+Response:
+
+```json
+{
+  "requestId": "vr_001",
+  "verifierId": "verifier_landlord_001",
+  "verifierName": "김민수 임대인",
+  "purpose": "HOUSING_CONTRACT",
+  "requestedClaims": [
+    "identityVerified",
+    "ageOver19",
+    "residenceValid",
+    "regionLevel1"
+  ],
+  "hiddenClaims": [
+    "alienRegistrationNumber",
+    "residentRegistrationNumber",
+    "passportNumber",
+    "nationality",
+    "fullAddress",
+    "visaStatusRaw",
+    "idCardImage"
+  ],
+  "status": "CREATED"
 }
 ```
 
 ### GET `/verification-requests/:requestId/result`
 
-Return verified claim result for the verifier.
-
-Response:
+Return verified claim result for the verifier. Returns `PENDING` (no claims) until the user has consented.
 
 ```json
 {
@@ -175,7 +213,7 @@ Request:
 
 ```json
 {
-  "userId": "user_001",
+  "userDid": "did:settlepass:user:mock-001",
   "consent": true,
   "consentedClaims": [
     "identityVerified",
@@ -205,11 +243,22 @@ Request:
 `multipart/form-data`
 
 ```text
-file: lease-contract.pdf
-userId: user_001
+file: lease-contract.pdf        # optional — pdf/png/jpg/jpeg, ≤ 10MB
+userDid: did:settlepass:user:mock-001
+manualText: ...                 # optional — FR-OCR-06 OCR 대체 텍스트
 ```
 
-Response:
+- `userDid` 는 필수. `userDid` 누락 시 400.
+- `file` 의 MIME 이 pdf/png/jpg/jpeg 가 아니면 400, 10MB 초과 시 400.
+- `manualText` 가 있으면 OCR 호출 없이 그대로 사용(provider=`FIXTURE_OCR`).
+- `file`/`manualText` 모두 없으면 데모 편의상 fixture 샘플로 진행(provider=`FIXTURE_OCR`).
+- OCR provider 실패 시 fixture 로 fallback 하며 사용자에게 오류를 던지지 않는다(R-03/NFR-R-01).
+
+PRIVACY: 업로드 원본 파일은 메모리에서만 처리하고 절대 영속하지 않는다.
+저장되는 `normalizedText`/`textPreview` 는 마스킹된 텍스트이며(이름/전화/상세주소 마스킹,
+금액·날짜 유지), `maskedFields` 는 마스킹된 카테고리 목록이다.
+
+Response (200):
 
 ```json
 {
@@ -229,7 +278,7 @@ Request:
 
 ```json
 {
-  "userId": "user_001",
+  "userDid": "did:settlepass:user:mock-001",
   "housingPassId": "hp_001",
   "ocrDocumentId": "ocr_001",
   "preferredLanguage": "ko"
@@ -272,13 +321,17 @@ Response:
 }
 ```
 
+### GET `/ai-reviews/:reviewId`
+
+Return a previously generated AI review (same shape as the create response).
+
 ### POST `/ai-reviews/:reviewId/confirm`
 
 Request:
 
 ```json
 {
-  "userId": "user_001",
+  "userDid": "did:settlepass:user:mock-001",
   "confirmations": {
     "summaryChecked": true,
     "riskItemsChecked": true,
@@ -288,7 +341,7 @@ Request:
 }
 ```
 
-Response:
+Response (`200`):
 
 ```json
 {
@@ -299,13 +352,23 @@ Response:
 }
 ```
 
+Behavior:
+- All four confirmations must be `true` (FR-RH-02). If any is `false` → `400` and no `reviewHash` / audit log is produced.
+- Idempotent: confirming an already-`CONFIRMED` review returns the existing `reviewHash` / `mockTxHash` without rehashing or writing another audit log.
+- Authorization: the review must belong to the resolved `userDid`, otherwise `403`. Unknown `userDid` / `reviewId` → `404`.
+- On first confirm a `REVIEW` audit log is written with `payloadHash = reviewHash` (the primary audit value).
+
 ## 7. Audit Log
 
 ### GET `/audit-logs`
 
 Query:
-- `userId`
-- optional `logType`
+- `userDid` (required, user scoped)
+- optional `logType` (`CONSENT` | `VERIFICATION` | `REVIEW`)
+
+Behavior:
+- Returns only the resolved user's own audit logs (NFR-S-05); never another user's. Unknown `userDid` → `404`.
+- Ordered by `createdAt` ascending (demo order: `CONSENT` → `VERIFICATION` → `REVIEW`).
 
 Response:
 
