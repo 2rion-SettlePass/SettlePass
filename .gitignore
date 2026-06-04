@@ -2,40 +2,32 @@
 node_modules/
 .pnpm-store/
 
-# build outputs
+# build output
 dist/
 .next/
 out/
 build/
+.turbo/
 *.tsbuildinfo
 
-# turbo
-.turbo/
-
-# local agent tooling
-.omc/
-
-# env
+# env / secrets — keep only the template
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
-# prisma
-prisma/migrations/dev.db*
-
-# coverage / test
-coverage/
-
-# logs
+# logs / debug
 *.log
 npm-debug.log*
+pnpm-debug.log*
 
-# os / editor
+# coverage / test artifacts
+coverage/
+
+# OS / editor
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/*
-!.vscode/extensions.json
+*.swp
 
-# next
-next-env.d.ts
+# OMC / tooling state
+.omc/
+.omx/

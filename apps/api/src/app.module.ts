@@ -2,6 +2,8 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller";
 import { validateEnv } from "./config/env.validation";
+import { PrismaModule } from "./infra/prisma/prisma.module";
+import { HashModule } from "./infra/hash/hash.module";
 import { IdentityModule } from "./modules/identity/identity.module";
 import { UsersModule } from "./modules/users/users.module";
 import { HousingPassModule } from "./modules/housing-pass/housing-pass.module";
@@ -21,6 +23,8 @@ import { FilesModule } from "./modules/files/files.module";
       envFilePath: [".env", "../../.env"],
       validate: validateEnv,
     }),
+    PrismaModule,
+    HashModule,
     IdentityModule,
     UsersModule,
     HousingPassModule,

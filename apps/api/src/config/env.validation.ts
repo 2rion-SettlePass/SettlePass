@@ -25,6 +25,8 @@ export const envSchema = z.object({
 
   AI_REVIEW_MODE: z.enum(["mock", "real"]).default("mock"),
   AI_API_KEY: z.string().optional(),
+  // OpenAI 호환 LLM base URL. 미설정 시 OpenAI. GLM(Zhipu): https://open.bigmodel.cn/api/paas/v4 (또는 https://api.z.ai/api/paas/v4)
+  AI_BASE_URL: z.string().optional(),
   AI_MODEL: z.string().default("gpt-4.1-mini"),
 
   HASH_SECRET_SALT: z.string().default("phase1-dev-salt"),

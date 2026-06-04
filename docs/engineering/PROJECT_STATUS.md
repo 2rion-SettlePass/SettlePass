@@ -3,7 +3,7 @@
 > 새로 합류한 사람(또는 AI 코딩 에이전트)이 **지금 무엇이 세팅돼 있고, 무엇부터 어떻게 구현하면 되는지** 가장 먼저 읽는 문서.
 > 큰 그림은 `01_Final_Phase1_MVP_Planning_v51.md`(기획) / `02_Phase1_MVP_Technical_v53.md`(기술), 규칙은 `AGENTS.md` / `CLAUDE.md` 참고.
 
-마지막 갱신: 2026-06-01 (런타임 초석 + API 명세 스텁 + DB 마이그레이션 완료 시점)
+마지막 갱신: 2026-06-03 (Phase 1 주거계약 한 싸이클 구현 + 런타임/E2E 검증 완료)
 
 ---
 
@@ -21,11 +21,16 @@
 - **모듈 설계 문서**: 각 모듈 `apps/api/src/modules/*/docs/`에 MODULE/PORTS/USE_CASES/INVARIANTS/TERMS/EVENTS/ERRORS/TEST_POLICY
 - **품질 게이트**: `pnpm typecheck` / `lint` / `build` / `test` 모두 green
 
-### ❌ 아직 안 된 것 (= 앞으로 구현할 것)
-- 모든 도메인 모듈의 **비즈니스 로직 0** — domain entity/VO, application use-case, infra adapter(CX/CLOVA/LLM/Hash), Prisma repository 미작성. 레이어 디렉터리는 `.gitkeep`만.
-- 컨트롤러는 **501 스텁** — use-case 미연결
-- **web ↔ api 연동 0** — 화면은 전부 정적 mock
-- 테스트 코드 0 (러너만 green 상태)
+### ✅ 구현 완료 (Phase 1 한 싸이클 · mock-first · 런타임 검증됨 — 상세는 `IMPLEMENTATION_PLAN.md`)
+- **전 도메인 모듈 비즈니스 로직 구현**: identity / users / housing-pass / verification-request / consent / presentation / ocr / ai-review / audit-log — domain·application·infrastructure·presentation 전부 (501 스텁 해소).
+- **핵심 플로우 동작**: DID 기반 식별 → Housing Pass VC → 선택공개 동의(consentHash) → 검증결과(verificationHash) → 계약서 OCR(마스킹) → AI 리뷰(체류-계약 WARNING + 법률자문아님 고지) → 최종 확인(reviewHash) → Audit Log. mockTxHash는 `DB_ONLY_PHASE1`.
+- **web ↔ api 연동 완료**: 11개 화면이 실 API를 client-side 호출. 브라우저로 auth→dashboard(claims)→…→audit-log(3 해시) 확인됨.
+- **테스트 86개**(unit+integration) green + privacy 가드/fallback/풀싸이클 E2E 런타임 검증.
+- **런타임 주의**: API는 `tsx`로 실행(워크스페이스 패키지가 raw-TS). NestJS는 명시적 `@Inject` + per-handler `ZodValidationPipe`. 데모 전 `pnpm db:seed` 권장.
+
+### ⏭️ 남은 것 (2차 또는 시연 준비)
+- 실연동(OmniOne CX / CLOVA OCR / LLM)은 어댑터 슬롯만 — 키 확보 시 `*_MODE=real`로 토글(실패 시 자동 mock fallback).
+- 배포(OQ-05) 및 Playwright 자동 E2E(현재는 API 해피패스 + 수동/preview 브라우저 검증).
 
 ---
 

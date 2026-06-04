@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@settlepass/api", "exec", "tsx", "src/main.ts"],
+      "port": 4000,
+      "autoPort": false
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@settlepass/web", "dev"],
+      "port": 3000,
+      "autoPort": false
+    }
+  ]
+}

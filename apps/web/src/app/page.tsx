@@ -25,7 +25,7 @@ export default function LandingPage() {
           <Link href="/auth" style={{ textDecoration: "none" }}>
             <Btn variant="primary" icon={<I.ShieldChk size={20} stroke={2} />}>데모 시작하기</Btn>
           </Link>
-          <Link href="/landlord/requests/new" style={{ textDecoration: "none" }}>
+          <Link href="/verifier/requests/new" style={{ textDecoration: "none" }}>
             <Btn variant="secondary" icon={<I.Building size={18} stroke={2} />}>임대인 포털 보기</Btn>
           </Link>
         </div>

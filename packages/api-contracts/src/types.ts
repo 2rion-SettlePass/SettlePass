@@ -52,7 +52,16 @@ export interface IdentityAuthCompleteRequest {
   mockProfile?: "DEFAULT_FOREIGNER_STUDENT" | "DEFAULT_FOREIGNER_WORKER";
 }
 
+// 인증 완료 시점에 내부 userId(uuid)와 userDid 매핑을 함께 반환한다.
+// 이후 모든 요청은 userDid 로 사용자를 식별한다(IMPLEMENTATION_PLAN §1-①).
 export interface IdentityAuthCompleteResponse {
+  userId: string;
+  userDid: string;
+  claims: NormalizedIdentityClaims;
+}
+
+// GET /users/me — userDid 로 사용자와 최신 NormalizedIdentityClaims 를 조회한다.
+export interface UserMeResponse {
   userId: string;
   userDid: string;
   claims: NormalizedIdentityClaims;
@@ -81,7 +90,7 @@ export interface HousingPassCredential {
 }
 
 export interface CreateHousingPassRequest {
-  userId: string;
+  userDid: string;
 }
 
 export interface CreateHousingPassResponse {
@@ -92,7 +101,7 @@ export interface CreateHousingPassResponse {
 
 export interface CreateVerificationRequestRequest {
   verifierId: string;
-  targetUserId: string;
+  targetUserDid: string;
   purpose: "HOUSING_CONTRACT";
   requestedClaims: HousingClaimKey[];
 }
@@ -103,8 +112,20 @@ export interface CreateVerificationRequestResponse {
   consentUrl: string;
 }
 
+// GET /verification-requests/:requestId — 동의 화면이 쓰는 요청 상세.
+// verifiedClaims 는 노출하지 않는다(결과는 result 엔드포인트 전용).
+export interface VerificationRequestDetailResponse {
+  requestId: string;
+  verifierId: string;
+  verifierName: string;
+  purpose: "HOUSING_CONTRACT";
+  requestedClaims: HousingClaimKey[];
+  hiddenClaims: PrivateClaimKey[];
+  status: "CREATED" | "SENT" | "CONSENTED" | "VERIFIED" | "REJECTED" | "EXPIRED";
+}
+
 export interface ConsentToVerificationRequest {
-  userId: string;
+  userDid: string;
   consent: boolean;
   consentedClaims: HousingClaimKey[];
 }
@@ -134,7 +155,7 @@ export interface OcrContractResponse {
 }
 
 export interface HousingContractReviewRequest {
-  userId: string;
+  userDid: string;
   housingPassId: string;
   ocrDocumentId: string;
   preferredLanguage: "ko" | "en" | "zh" | "vi";
@@ -173,7 +194,7 @@ export interface HousingContractReviewResponse {
 }
 
 export interface ConfirmReviewRequest {
-  userId: string;
+  userDid: string;
   confirmations: {
     summaryChecked: boolean;
     riskItemsChecked: boolean;

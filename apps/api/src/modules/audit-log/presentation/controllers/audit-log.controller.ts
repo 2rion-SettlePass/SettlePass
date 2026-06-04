@@ -1,21 +1,25 @@
-import {
-  Controller,
-  Get,
-  NotImplementedException,
-  Query,
-} from "@nestjs/common";
+import { Controller, Get, Inject, Query } from "@nestjs/common";
+import { ZodValidationPipe } from "nestjs-zod";
 import type { AuditLogResponse } from "@settlepass/api-contracts";
+import { ListAuditLogsUseCase } from "../../application/use-cases/list-audit-logs.use-case";
 import { AuditLogQueryDto } from "../dto/audit-log.dto";
 
-/**
- * Phase 1 명세 스텁. 라우트·쿼리 검증만 정의하고 use-case는 미구현.
- */
 @Controller("audit-logs")
 export class AuditLogController {
+  constructor(
+    @Inject(ListAuditLogsUseCase)
+    private readonly listAuditLogs: ListAuditLogsUseCase,
+  ) {}
+
+  // query 스키마를 파이프에 직접 전달한다(다른 핸들러와 동일 — esbuild 메타데이터 부재 대응).
   @Get()
-  list(@Query() _query: AuditLogQueryDto): AuditLogResponse {
-    throw new NotImplementedException(
-      "audit-logs: use-case 미구현 (Phase 1 명세 단계)",
-    );
+  list(
+    @Query(new ZodValidationPipe(AuditLogQueryDto))
+    query: AuditLogQueryDto,
+  ): Promise<AuditLogResponse> {
+    return this.listAuditLogs.execute({
+      userDid: query.userDid,
+      logType: query.logType,
+    });
   }
 }
